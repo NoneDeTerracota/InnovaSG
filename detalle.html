@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Publicación</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
+        .transition-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-white text-slate-900 min-h-screen flex flex-col justify-between antialiased selection:bg-emerald-100 selection:text-emerald-900">
+
+    <!-- BARRA SUPERIOR DE NAVEGACIÓN COMPACTA -->
+    <header class="sticky top-0 bg-white/95 backdrop-blur-md border-b border-slate-100 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <a href="index.html" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors">
+                <span class="text-base leading-none">←</span> Volver al catálogo
+            </a>
+            <div class="flex items-center gap-2">
+                <button onclick="copiarEnlace()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors" title="Compartir publicación">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                </button>
+                <button id="nav-btn-fav" onclick="toggleFavorito()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:text-rose-500 hover:border-rose-200 transition-colors" title="Guardar favorito">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ESTADO DE CARGA -->
+    <div id="loading-state" class="flex-1 flex flex-col items-center justify-center py-32 text-center px-4">
+        <div class="w-8 h-8 border-3 border-slate-200 border-t-emerald-600 rounded-full animate-spin mb-3"></div>
+        <p class="text-xs font-medium text-slate-400">Cargando detalles de la publicación...</p>
+    </div>
+
+    <!-- ESTADO DE ERROR -->
+    <div id="error-state" class="hidden flex-1 flex flex-col items-center justify-center py-32 text-center px-4">
+        <span class="text-3xl mb-2">🔍</span>
+        <h2 class="text-lg font-bold text-slate-900 mb-1">Publicación no encontrada</h2>
+        <p class="text-xs text-slate-400 max-w-xs mb-5">El registro solicitado no existe o fue retirado recientemente.</p>
+        <a href="index.html" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-4 rounded-xl text-xs transition-colors">
+            Volver al catálogo
+        </a>
+    </div>
+
+    <!-- CONTENEDOR HERO ESTILO PROPI (50% / 50%) -->
+    <main id="content-section" class="hidden flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full space-y-10">
+
+        <!-- BLOQUE PRINCIPAL DIVIDIDO EN 2 COLUMNAS IGUALES -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
+
+            <!-- ===================== COLUMNA IZQUIERDA ===================== -->
+            <div class="flex flex-col justify-between space-y-4">
+
+                <!-- ENCABEZADO Y UBICACIÓN -->
+                <div class="space-y-1.5">
+                    <h1 id="prop-titulo" class="text-3xl sm:text-[34px] font-extrabold text-slate-950 tracking-tight leading-tight">
+                        Cargando título...
+                    </h1>
+
+                    <div class="flex items-center gap-1.5 text-sm text-slate-500 font-normal pt-0.5">
+                        <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span id="prop-ubicacion-texto">El Salvador</span>
+                    </div>
+                </div>
+
+                <!-- PRECIO DESTACADO -->
+                <div class="space-y-0.5 pt-2">
+                    <div class="flex items-baseline gap-2">
+                        <span id="prop-tag-label" class="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Venta</span>
+                        <span id="prop-precio-grande" class="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">$0.00</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Atención personalizada y agendamiento directo sin intermediarios</p>
+                </div>
+
+                <!-- GRILLA DINÁMICA DE AMENIDADES EN 2 COLUMNAS -->
+                <div id="amenidades-grid" class="grid grid-cols-2 gap-y-4 gap-x-6 text-sm sm:text-base text-slate-700 font-semibold py-4 border-y border-slate-100">
+                    <!-- Inyectado dinámicamente con íconos vectoriales SVG limpios -->
+                </div>
+
+                <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <a id="btn-programar-visita" target="_blank" href="#" class="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center text-sm transition-all shadow-sm">
+                        Programar visita
+                    </a>
+                    <a id="btn-hacer-oferta" target="_blank" href="#" class="flex-1 bg-slate-950 hover:bg-slate-900 active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center text-sm transition-all relative shadow-sm">
+                        <span>Hacer oferta</span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-orange-500 absolute top-2.5 right-2.5"></span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ===================== COLUMNA DERECHA (COLLAGE MULTIMEDIA) ===================== -->
+            <div class="flex flex-col space-y-3 justify-between">
+                
+                <!-- VISOR PRINCIPAL GRANDE -->
+                <div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[16/10] shadow-sm flex items-center justify-center group flex-1">
+                    <div id="main-hero-container" class="w-full h-full">
+                        <!-- Imagen o Video principal -->
+                    </div>
+
+                    <!-- BOTONES SUPERIORES FLOTANTES (FAVORITO + COMPARTIR) -->
+                    <div class="absolute top-3.5 left-3.5 flex items-center gap-2 z-20">
+                        <button onclick="toggleFavorito()" id="hero-fav-btn" class="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-rose-600 shadow-md flex items-center justify-center transition-all" title="Guardar favorito">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
+                        <button onclick="copiarEnlace()" class="w-9 h-9 rounded-full bg-white text-slate-700 hover:bg-slate-50 shadow-md flex items-center justify-center transition-all" title="Compartir">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- BOTÓN SUPERIOR DERECHO 'VER MÁS FOTOS' -->
+                    <button onclick="openLightbox(0)" class="absolute top-3.5 right-3.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all z-20">
+                        <svg class="w-3.5 h-3.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                        Ver más fotos
+                    </button>
+
+                    <!-- CONTROLES FLECHAS DEL VISOR PRINCIPAL -->
+                    <button id="hero-prev-btn" onclick="cambiarHeroIndex(-1)" class="absolute left-3 bg-black/40 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-base z-20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">‹</button>
+                    <button id="hero-next-btn" onclick="cambiarHeroIndex(1)" class="absolute right-3 bg-black/40 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-base z-20 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">›</button>
+                    
+                    <span id="hero-counter" class="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-20 backdrop-blur-sm">1 / 1</span>
+                </div>
+
+                <!-- FILA DE 3 FOTOS MINIATURA DEBAJO -->
+                <div id="sub-photos-grid" class="grid grid-cols-3 gap-2.5">
+                    <!-- 3 miniaturas interactivas inyectadas por JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN INFERIOR: DESCRIPCIÓN DETALLADA Y MAPA -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 border-t border-slate-100 pt-8">
+            <div class="lg:col-span-8 space-y-6">
+                <div class="space-y-3">
+                    <h2 class="text-xl font-bold text-slate-900 tracking-tight">Descripción de la propiedad</h2>
+                    <div id="prop-descripcion-completa" class="text-base text-slate-700 leading-relaxed whitespace-pre-line font-normal">
+                        Cargando información...
+                    </div>
+                </div>
+
+                <!-- UBICACIÓN EN GOOGLE MAPS -->
+                <div id="maps-container-section" class="space-y-3 hidden pt-6 border-t border-slate-100">
+                    <h2 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <span>📍</span> Ubicación y Alrededores
+                    </h2>
+                    
+                    <div id="maps-iframe-box" class="w-full h-72 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 hidden">
+                        <iframe id="maps-iframe" class="w-full h-full border-0" loading="lazy" allowfullscreen src=""></iframe>
+                    </div>
+
+                    <div id="maps-link-box" class="hidden">
+                        <a id="maps-link" target="_blank" href="#" class="w-full bg-slate-50 hover:bg-emerald-50 text-emerald-700 font-bold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 border border-slate-200 text-sm transition-colors">
+                            📍 Abrir ubicación exacta en Google Maps &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TARJETA LATERAL DE ASESOR -->
+            <div class="lg:col-span-4 space-y-4">
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xl font-bold">
+                            💬
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm">Asesor Inmobiliario</h4>
+                            <p class="text-xs text-slate-400">Atención inmediata vía WhatsApp</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        ¿Tienes dudas sobre el proceso legal, visitas o formas de pago? Conversa directamente con nuestro equipo sin intermediarios.
+                    </p>
+                    <a id="btn-soporte-wa" target="_blank" href="#" class="w-full bg-white border border-slate-200 hover:border-emerald-500 hover:text-emerald-600 text-slate-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm transition-all shadow-sm">
+                        Chatear con el asesor &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- VISOR A PANTALLA COMPLETA (LIGHTBOX) -->
+    <div id="lightboxModal" onclick="closeLightbox()" class="fixed inset-0 bg-black/95 z-[100] hidden flex items-center justify-center p-4 cursor-pointer backdrop-blur-sm select-none">
+        <button onclick="closeLightbox()" class="absolute top-5 right-5 text-white text-xl font-bold bg-white/20 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/30 transition-all z-[110]">✕</button>
+        <button id="lightbox-prev-btn" onclick="moveLightbox(-1, event)" class="absolute left-5 text-white text-2xl font-bold bg-white/10 hover:bg-white/30 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all z-[110]">‹</button>
+        
+        <div id="lightboxContentContainer" class="max-w-full max-h-[85vh] flex items-center justify-center pointer-events-auto cursor-default" onclick="event.stopPropagation()"></div>
+
+        <button id="lightbox-next-btn" onclick="moveLightbox(1, event)" class="absolute right-5 text-white text-2xl font-bold bg-white/10 hover:bg-white/30 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md transition-all z-[110]">›</button>
+        <span id="lightbox-counter" class="absolute bottom-5 text-white/80 text-xs font-bold bg-black/60 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md">1 / 1</span>
+    </div>
+
+    <!-- TOAST DE NOTIFICACIÓN -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xl transition-all transform translate-y-12 opacity-0 pointer-events-none z-50">
+        Enlace copiado al portapapeles
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="bg-white border-t border-slate-100 py-6 text-center text-xs text-slate-400 mt-12">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>&copy; 2026 Catálogo Premium. Conectado a Supabase Storage.</p>
+            <a href="admin.html" class="text-slate-400 hover:text-slate-900 font-semibold transition-colors">
+                🔒 Acceso Panel Admin
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        const SUPABASE_URL = 'https://lbhcqbepondrkwxickuh.supabase.co'; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiaGNxYmVwb25kcmt3eGlja3VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNTI1NTYsImV4cCI6MjA5NzYyODU1Nn0.-3rd9wyCeQl6zIozdopJyHnQY-mmm2fxKblhWFLIQHs";
+        const WHATSAPP_PHONE = '50370992328';
+
+        let slides = [];
+        let activeHeroIndex = 0;
+        let esFavorito = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipo = urlParams.get('tipo') || 'Propiedades';
+        const tituloParam = urlParams.get('titulo');
+
+        async function fetchPropertyDetails() {
+            if (!tituloParam) {
+                mostrarError();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${encodeURIComponent(tipo)}?titulo=eq.${encodeURIComponent(tituloParam)}&select=*`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (!response.ok) throw new Error("Error en la consulta");
+                const data = await response.json();
+
+                if (!data || data.length === 0) {
+                    mostrarError();
+                    return;
+                }
+
+                renderDetails(data[0]);
+
+            } catch (err) {
+                console.error(err);
+                mostrarError();
+            }
+        }
+
+        function mostrarError() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+            document.getElementById('content-section').classList.add('hidden');
+        }
+
+        function renderDetails(item) {
+            document.title = `${item.titulo} - Catálogo Premium`;
+
+            document.getElementById('prop-titulo').innerText = item.titulo;
+            document.getElementById('prop-tag-label').innerText = item.tag || 'Venta';
+
+            // Formato de Precio
+            const precioFormateado = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                maximumFractionDigits: 0
+            }).format(item.precio || 0);
+            document.getElementById('prop-precio-grande').innerText = precioFormateado;
+
+            // Detección de ubicación contextual
+            let ubicacionTexto = 'El Salvador';
+            const titLower = (item.titulo || '').toLowerCase();
+            if (titLower.includes('jujutla')) ubicacionTexto = 'Jujutla, Ahuachapán Sur';
+            else if (titLower.includes('apopa')) ubicacionTexto = 'Apopa, Departamento de San Salvador';
+            else if (titLower.includes('san salvador')) ubicacionTexto = 'San Salvador, San Salvador';
+            else if (titLower.includes('santa tecla')) ubicacionTexto = 'Santa Tecla, La Libertad';
+            document.getElementById('prop-ubicacion-texto').innerText = ubicacionTexto;
+
+            // Renderizado de amenidades contextuales dinámicas
+            renderAmenidadesGrid(item);
+
+            // Descripción Detallada
+            document.getElementById('prop-descripcion-completa').innerText = item.descripcion || 'Sin descripción detallada disponible.';
+
+            // Procesar imágenes y video
+            let imagenes = [];
+            try {
+                imagenes = typeof item.imagenes === 'string' ? JSON.parse(item.imagenes) : item.imagenes;
+            } catch(e) { imagenes = []; }
+
+            slides = [];
+            if (Array.isArray(imagenes)) {
+                imagenes.forEach(url => slides.push({ tipo: 'imagen', url }));
+            }
+            if (item.video_url) {
+                slides.push({ tipo: 'video', url: item.video_url });
+            }
+            if (slides.length === 0) {
+                slides.push({ tipo: 'imagen', url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80' });
+            }
+
+            renderMultimediaCollage();
+
+            // Configurar Google Maps
+            const mapsSection = document.getElementById('maps-container-section');
+            const mapsIframeBox = document.getElementById('maps-iframe-box');
+            const mapsLinkBox = document.getElementById('maps-link-box');
+            const mapsIframe = document.getElementById('maps-iframe');
+            const mapsLink = document.getElementById('maps-link');
+
+            if (item.mapa_url && item.mapa_url.trim() !== '') {
+                const url = item.mapa_url.trim();
+                if (url.includes('/maps/embed') || url.includes('pb=')) {
+                    mapsIframe.src = url;
+                    mapsIframeBox.classList.remove('hidden');
+                    mapsLinkBox.classList.add('hidden');
+                } else {
+                    mapsLink.href = url;
+                    mapsLinkBox.classList.remove('hidden');
+                    mapsIframeBox.classList.add('hidden');
+                }
+                mapsSection.classList.remove('hidden');
+            }
+
+            // Enlaces dinámicos a WhatsApp
+            const msgVisita = `Hola! Me gustaría programar una visita para la propiedad "${item.titulo}" (${precioFormateado}) que vi en su catálogo: ${window.location.href}`;
+            const msgOferta = `Hola! Me interesa la publicación "${item.titulo}" (${precioFormateado}) y deseo hacer una oferta formal.`;
+            const msgSoporte = `Hola! Tengo consultas sobre la propiedad "${item.titulo}": ${window.location.href}`;
+
+            document.getElementById('btn-programar-visita').href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msgVisita)}`;
+            document.getElementById('btn-hacer-oferta').href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msgOferta)}`;
+            document.getElementById('btn-soporte-wa').href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msgSoporte)}`;
+
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('content-section').classList.remove('hidden');
+        }
+
+        function getSvgIcon(texto) {
+            const t = (texto || '').toLowerCase();
+
+            // Habitaciones
+            if (t.includes('hab') || t.includes('cuarto') || t.includes('recámara')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7v11m0-4h18m0-7v11M3 11h18M7 7a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"/></svg>`;
+            }
+            // Baños
+            if (t.includes('baño') || t.includes('bano')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 12h16a2 2 0 012 2v2a4 4 0 01-4 4H6a4 4 0 01-4-4v-2a2 2 0 012-2zm2 0V6a2 2 0 012-2h1"/></svg>`;
+            }
+            // Parqueos o Vehículos
+            if (t.includes('parqueo') || t.includes('cochera') || t.includes('auto') || t.includes('garaje')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 17h8m-8 0a2 2 0 11-4 0 2 2 0 014 0zm8 0a2 2 0 11-4 0 2 2 0 014 0zM5 11l2-5h10l2 5m-14 0h14a2 2 0 012 2v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a2 2 0 012-2z"/></svg>`;
+            }
+            // Área, Medidas o Superficie
+            if (t.includes('área') || t.includes('area') || t.includes('m2') || t.includes('m²') || t.includes('manzana') || t.includes('vara') || t.includes('lote') || t.includes('topografía')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>`;
+            }
+            // Agua, Río, Cascada o Cisterna
+            if (t.includes('agua') || t.includes('río') || t.includes('rio') || t.includes('cascada') || t.includes('pozo') || t.includes('cisterna')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`;
+            }
+            // Luz o Energía Eléctrica
+            if (t.includes('luz') || t.includes('eléctrica') || t.includes('electrica') || t.includes('energía') || t.includes('energia')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`;
+            }
+            // Carretera, Calle o Acceso
+            if (t.includes('carretera') || t.includes('acceso') || t.includes('calle') || t.includes('camino')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>`;
+            }
+            // Escrituras o Documentos legales
+            if (t.includes('escritura') || t.includes('título') || t.includes('titulo') || t.includes('registro') || t.includes('legal')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`;
+            }
+            // Vocación Agrícola o Café
+            if (t.includes('agrícola') || t.includes('agricola') || t.includes('café') || t.includes('cafe') || t.includes('cultivo')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21V11m0 0a4 4 0 118 0c0 4-4 6-8 6s-8-2-8-6a4 4 0 118 0z"/></svg>`;
+            }
+            // Zona Turística o Vistas
+            if (t.includes('turística') || t.includes('turistica') || t.includes('vista') || t.includes('montaña')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 20l5-9 4 5 5-9 2 4M3 20h18"/></svg>`;
+            }
+            // Amueblado
+            if (t.includes('amueblado') || t.includes('mueble')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 9V7a2 2 0 00-2-2H6a2 2 0 00-2 2v2m16 0v7a2 2 0 01-2 2H6a2 2 0 01-2-2V9m16 0h-2a2 2 0 00-2 2v2H8v-2a2 2 0 00-2-2H4"/></svg>`;
+            }
+            // Mascotas o Pet Friendly
+            if (t.includes('mascota') || t.includes('pet')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>`;
+            }
+            // Seguridad
+            if (t.includes('seguridad') || t.includes('vigilancia')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>`;
+            }
+            // Piscina
+            if (t.includes('piscina') || t.includes('alberca')) {
+                return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M3 19c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></svg>`;
+            }
+
+            // Ícono por defecto
+            return `<svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+        }
+
+        function renderAmenidadesGrid(item) {
+            const container = document.getElementById('amenidades-grid');
+            container.innerHTML = '';
+
+            const detallesStr = item.detalles || '';
+            const partes = detallesStr.split(' · ').map(p => p.trim()).filter(Boolean);
+
+            if (tipo === 'Propiedades') {
+                if (partes.length === 0) {
+                    container.innerHTML = `<div class="col-span-2 text-slate-400 text-sm">Sin características especificadas.</div>`;
+                    return;
+                }
+
+                partes.forEach(parte => {
+                    const icon = getSvgIcon(parte);
+                    container.innerHTML += `
+                        <div class="flex items-center gap-3 min-w-0">
+                            ${icon}
+                            <span class="truncate">${parte}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="flex items-center gap-3 col-span-2">
+                        <svg class="w-6 h-6 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 17h8m-8 0a2 2 0 11-4 0 2 2 0 014 0zm8 0a2 2 0 11-4 0 2 2 0 014 0zM5 11l2-5h10l2 5m-14 0h14a2 2 0 012 2v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a2 2 0 012-2z"/></svg>
+                        <span class="font-bold text-slate-800">${item.marca || ''} ${item.modelo || ''}</span>
+                    </div>
+                `;
+                partes.forEach(parte => {
+                    const icon = getSvgIcon(parte);
+                    container.innerHTML += `
+                        <div class="flex items-center gap-3 min-w-0 col-span-2">
+                            ${icon}
+                            <span class="truncate">${parte}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function renderMultimediaCollage() {
+            updateHeroMedia();
+
+            const subGrid = document.getElementById('sub-photos-grid');
+            subGrid.innerHTML = '';
+
+            for (let i = 1; i <= 3; i++) {
+                if (slides[i]) {
+                    const thumbSlide = slides[i];
+                    const esVid = thumbSlide.tipo === 'video';
+                    const imgSrc = esVid ? 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=400&q=80' : thumbSlide.url;
+
+                    subGrid.innerHTML += `
+                        <div onclick="cambiarHeroDirecto(${i})" class="relative aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 cursor-pointer group border-2 ${activeHeroIndex === i ? 'border-emerald-500' : 'border-transparent'} hover:opacity-95 transition-all">
+                            <img src="${imgSrc}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300">
+                            ${esVid ? '<span class="absolute inset-0 bg-black/30 flex items-center justify-center text-white text-base">▶</span>' : ''}
+                        </div>
+                    `;
+                } else if (slides[0]) {
+                    subGrid.innerHTML += `
+                        <div onclick="openLightbox(0)" class="relative aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 cursor-pointer group opacity-30 hover:opacity-70 transition-all">
+                            <img src="${slides[0].url}" class="w-full h-full object-cover">
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function updateHeroMedia() {
+            const container = document.getElementById('main-hero-container');
+            const current = slides[activeHeroIndex];
+
+            if (current.tipo === 'video') {
+                container.innerHTML = `
+                    <div class="w-full h-full bg-black flex items-center justify-center">
+                        <video src="${current.url}" controls class="w-full h-full object-contain"></video>
+                    </div>`;
+            } else {
+                container.innerHTML = `
+                    <div class="w-full h-full cursor-zoom-in" onclick="openLightbox(${activeHeroIndex})">
+                        <img src="${current.url}" class="w-full h-full object-cover hover:scale-[1.01] transition-all duration-300">
+                    </div>`;
+            }
+
+            document.getElementById('hero-counter').innerText = `${activeHeroIndex + 1} / ${slides.length}`;
+        }
+
+        function cambiarHeroIndex(dir) {
+            activeHeroIndex += dir;
+            if (activeHeroIndex < 0) activeHeroIndex = slides.length - 1;
+            if (activeHeroIndex >= slides.length) activeHeroIndex = 0;
+            updateHeroMedia();
+            renderMultimediaCollage();
+        }
+
+        function cambiarHeroDirecto(index) {
+            activeHeroIndex = index;
+            updateHeroMedia();
+            renderMultimediaCollage();
+        }
+
+        function toggleFavorito() {
+            esFavorito = !esFavorito;
+            const heroBtn = document.getElementById('hero-fav-btn');
+            const navBtn = document.getElementById('nav-btn-fav');
+
+            const colorClase = esFavorito ? 'text-rose-600 fill-rose-600' : 'text-slate-700';
+            const navColor = esFavorito ? 'text-rose-600 fill-rose-600 border-rose-200' : 'text-slate-600';
+
+            heroBtn.innerHTML = `
+                <svg class="w-4 h-4 ${colorClase}" ${esFavorito ? 'fill="currentColor"' : 'fill="none"'} stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+            `;
+            navBtn.className = `w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${navColor}`;
+
+            mostrarToast(esFavorito ? 'Agregado a tus favoritos' : 'Eliminado de tus favoritos');
+        }
+
+        function openLightbox(index) {
+            activeHeroIndex = index;
+            updateLightboxContent();
+            document.getElementById('lightboxModal').classList.remove('hidden');
+        }
+
+        function updateLightboxContent() {
+            const container = document.getElementById('lightboxContentContainer');
+            const counter = document.getElementById('lightbox-counter');
+            const current = slides[activeHeroIndex];
+
+            if (current.tipo === 'video') {
+                container.innerHTML = `<video src="${current.url}" controls autoplay class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain"></video>`;
+            } else {
+                container.innerHTML = `<img src="${current.url}" class="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl">`;
+            }
+
+            counter.innerText = `${activeHeroIndex + 1} / ${slides.length}`;
+        }
+
+        function moveLightbox(direction, event) {
+            if (event) event.stopPropagation();
+            const activeVid = document.querySelector('#lightboxContentContainer video');
+            if (activeVid) activeVid.pause();
+
+            activeHeroIndex += direction;
+            if (activeHeroIndex < 0) activeHeroIndex = slides.length - 1;
+            if (activeHeroIndex >= slides.length) activeHeroIndex = 0;
+
+            updateLightboxContent();
+            updateHeroMedia();
+        }
+
+        function closeLightbox() {
+            const activeVid = document.querySelector('#lightboxContentContainer video');
+            if (activeVid) activeVid.pause();
+            document.getElementById('lightboxModal').classList.add('hidden');
+            document.getElementById('lightboxContentContainer').innerHTML = '';
+        }
+
+        function copiarEnlace() {
+            const tempInput = document.createElement('input');
+            tempInput.value = window.location.href;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            mostrarToast('Enlace copiado al portapapeles');
+        }
+
+        function mostrarToast(mensaje) {
+            const toast = document.getElementById('toast');
+            toast.innerText = mensaje;
+            toast.classList.remove('translate-y-12', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-12', 'opacity-0'), 2500);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const isLightboxOpen = !document.getElementById('lightboxModal').classList.contains('hidden');
+            if (isLightboxOpen) {
+                if (e.key === 'ArrowRight') moveLightbox(1);
+                if (e.key === 'ArrowLeft') moveLightbox(-1);
+                if (e.key === 'Escape') closeLightbox();
+            } else {
+                if (e.key === 'ArrowRight') cambiarHeroIndex(1);
+                if (e.key === 'ArrowLeft') cambiarHeroIndex(-1);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', fetchPropertyDetails);
+    </script>
+</body>
+</html>

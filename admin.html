@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Gestión de Catálogo y Storage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #fff;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans min-h-screen antialiased flex flex-col justify-between text-slate-800">
+
+    <!-- CONTENEDOR GLOBAL DE TOASTS/NOTIFICACIONES -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 shadow-2xl max-w-md w-full border border-slate-100 scale-95 transition-all">
+            <div class="text-center">
+                <span class="text-4xl">⚠️</span>
+                <h3 class="text-xl font-black text-slate-900 mt-3" id="confirmModalTitle">¿Eliminar registro?</h3>
+                <p class="text-slate-500 text-sm mt-2" id="confirmModalMessage">Esta acción borrará permanentemente la información de la base de datos.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl text-sm transition-colors">
+                    Cancelar
+                </button>
+                <button id="confirmModalBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm">
+                    Confirmar y borrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. FORMULARIO DE INICIO DE SESIÓN -->
+    <div id="loginSection" class="flex-1 flex items-center justify-center px-4 py-12">
+        <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-slate-100">
+            <div class="text-center mb-6">
+                <span class="text-3xl">🔒</span>
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight mt-2">Acceso Administrativo</h2>
+                <p class="text-gray-400 text-xs mt-1">Ingresa tus credenciales registradas en Supabase Auth</p>
+            </div>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                    <input type="email" id="loginEmail" required placeholder="admin@correo.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Contraseña</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md mt-2">
+                    Validar Token e Ingresar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. PANEL DE CONTROL CMS AUTORIZADO -->
+    <div id="adminPanel" class="hidden w-full max-w-4xl mx-auto px-4 py-12 flex-1 space-y-10">
+        
+        <!-- ENCABEZADO -->
+        <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-100 gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">Consola de Administración</h2>
+                    <p class="text-slate-400 text-xs mt-1">Gestiona de forma segura tus catálogos, imágenes y videos.</p>
+                </div>
+                <button id="logoutBtn" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors border border-red-200 self-start sm:self-auto">
+                    Cerrar Sesión
+                </button>
+            </div>
+
+            <!-- Selector de Categoría (Pestañas) -->
+            <div class="grid grid-cols-2 gap-3 mt-6 p-1 bg-slate-100 rounded-2xl">
+                <button type="button" id="form-tab-propiedades" onclick="toggleFormType('Propiedades')" class="py-3 px-4 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm">
+                    🏢 Propiedades
+                </button>
+                <button type="button" id="form-tab-vehiculos" onclick="toggleFormType('Vehiculos')" class="py-3 px-4 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-900">
+                    🚗 Vehículos
+                </button>
+            </div>
+        </div>
+
+        <!-- FORMULARIO DE CREACIÓN / EDICIÓN -->
+        <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative">
+            
+            <div id="edit-banner" class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold p-4 rounded-2xl mb-6 flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                    ✏️ Modo Edición Activo: Modificando un registro existente.
+                </span>
+                <button type="button" onclick="cancelEditing()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1 rounded-lg">
+                    Cancelar Edición
+                </button>
+            </div>
+
+            <h3 id="form-title-label" class="text-lg font-black text-slate-900 mb-6 border-b border-slate-100 pb-2">Publicar Nuevo Registro</h3>
+
+            <form id="cms-upload-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                <!-- Título y Precio -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Título de la publicación *</label>
+                        <input type="text" id="form-titulo" required placeholder="Ej. Terreno de 335 Manzanas" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Precio ($ Numérico) *</label>
+                        <input type="number" id="form-precio" required placeholder="Ej. 2847500" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                    </div>
+                </div>
+
+                <!-- Tag y Ubicación Google Maps -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Etiqueta de estado *</label>
+                        <select id="form-tag" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium bg-white text-slate-700">
+                            <option value="" disabled selected>Selecciona un estado...</option>
+                            <option value="Venta">🏢 Venta</option>
+                            <option value="Alquiler">🔑 Alquiler</option>
+                            <option value="Nuevo">✨ Nuevo</option>
+                            <option value="Usado">🚗 Usado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">URL Google Maps (Embed o Link Directo)</label>
+                        <input type="url" id="form-mapa-url" placeholder="https://www.google.com/maps/embed?pb=..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                    </div>
+                </div>
+
+                <!-- MULTIMEDIA -->
+                <div class="border-t border-slate-100 pt-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Archivos de la Publicación</h4>
+                        <span id="multimedia-edit-hint" class="hidden text-[10px] text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full font-bold">⚠️ Sube archivos nuevos solo si deseas reemplazar los actuales</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2" id="label-fotos">Seleccionar Fotos (Múltiples) *</label>
+                            <input type="file" id="form-fotos-input" multiple accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Seleccionar Video (Opcional - 1 archivo)</label>
+                            <input type="file" id="form-video-input" accept="video/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                        </div>
+                    </div>
+                    <div id="multimedia-status-box" class="hidden text-xs bg-indigo-50 text-indigo-700 p-3 rounded-xl font-medium"></div>
+                </div>
+
+                <!-- CAMPOS EXCLUSIVOS: PROPIEDADES -->
+                <div id="fields-propiedades" class="block border-t border-slate-100 pt-6 space-y-4">
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tipo de Inmueble *</label>
+                        <select id="prop-tipo" onchange="togglePropiedadSubcampos()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 font-medium bg-white text-slate-700">
+                            <option value="Construcción">🏠 Casa / Departamento / Edificio</option>
+                            <option value="Terreno">🌾 Terreno / Finca / Lote</option>
+                        </select>
+                    </div>
+
+                    <!-- Subcampos numéricos para casas -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div id="box-prop-hab">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Habitaciones</label>
+                            <input type="number" id="prop-hab" placeholder="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                        </div>
+                        <div id="box-prop-banos">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Baños</label>
+                            <input type="number" id="prop-banos" placeholder="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                        </div>
+                        <div id="box-prop-area" class="col-span-1 md:col-span-1">
+                            <label class="block text-xs font-medium text-slate-400 mb-1" id="label-prop-area">Área / Medida *</label>
+                            <input type="text" id="prop-area" placeholder="Ej. 150m² o 335 Manzanas" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- CARACTERÍSTICAS SELECCIONABLES PARA TERRENOS -->
+                    <div id="box-terreno-amenities" class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider">Características específicas del terreno (Marca las que apliquen):</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Agua potable" class="terreno-check rounded text-indigo-600">
+                                <span>🚰 Agua potable</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Luz eléctrica" class="terreno-check rounded text-indigo-600">
+                                <span>⚡ Luz eléctrica</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Ríos / Cascadas" class="terreno-check rounded text-indigo-600">
+                                <span>🌊 Ríos / Cascadas</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Frente a carretera" class="terreno-check rounded text-indigo-600">
+                                <span>🛣️ Frente a carretera</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Acceso fácil" class="terreno-check rounded text-indigo-600">
+                                <span>🚗 Acceso fácil</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Escritura lista" class="terreno-check rounded text-indigo-600">
+                                <span>📄 Escritura lista</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Topografía plana" class="terreno-check rounded text-indigo-600">
+                                <span>📐 Topografía plana</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Vocación agrícola" class="terreno-check rounded text-indigo-600">
+                                <span>☕ Vocación agrícola</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Zona turística" class="terreno-check rounded text-indigo-600">
+                                <span>🌄 Zona turística</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- CARACTERÍSTICAS SELECCIONABLES PARA CASAS -->
+                    <div id="box-casa-amenities" class="block bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider">Detalles adicionales de la casa (Opcional):</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="2 parqueos" class="casa-check rounded text-indigo-600">
+                                <span>🚗 2 parqueos</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Pet Friendly" class="casa-check rounded text-indigo-600">
+                                <span>🐾 Pet Friendly</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Amueblado" class="casa-check rounded text-indigo-600">
+                                <span>🛋️ Amueblado</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Seguridad 24/7" class="casa-check rounded text-indigo-600">
+                                <span>🛡️ Seguridad 24/7</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Cisterna propia" class="casa-check rounded text-indigo-600">
+                                <span>💧 Cisterna propia</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                                <input type="checkbox" value="Piscina / Área social" class="casa-check rounded text-indigo-600">
+                                <span>🏊 Piscina / Club</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAMPOS EXCLUSIVOS: VEHÍCULOS -->
+                <div id="fields-vehiculos" class="hidden border-t border-slate-100 pt-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4 mb-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Marca</label>
+                            <input type="text" id="veh-marca" placeholder="Ej. Toyota" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Modelo</label>
+                            <input type="text" id="veh-modelo" placeholder="Ej. Hilux" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 font-medium">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Año</label>
+                            <input type="number" id="veh-ano" placeholder="2025" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Combustible</label>
+                            <input type="text" id="veh-combustible" placeholder="Gasolina" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Transmisión</label>
+                            <input type="text" id="veh-transmision" placeholder="Automático" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DESCRIPCIÓN -->
+                <div class="border-t border-slate-100 pt-6">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Descripción Larga Detallada *</label>
+                    <textarea id="form-descripcion" required rows="4" placeholder="Describe a fondo el bien..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 font-medium resize-none"></textarea>
+                </div>
+
+                <!-- BOTÓN SUBMIT -->
+                <div class="flex gap-4">
+                    <button type="submit" id="submitBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                        <div id="btnSpinner" class="spinner hidden"></div>
+                        <span id="btnText">Procesar Multimedia y Guardar Registro</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- LISTADO DE PUBLICACIONES EN LA BD -->
+        <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-black text-slate-900 tracking-tight">Publicaciones Existentes</h3>
+                    <p id="list-subtitle" class="text-xs text-slate-400 mt-1">Sincronizado con Supabase</p>
+                </div>
+                <button onclick="fetchItemsList()" class="bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold px-3 py-1.5 rounded-xl border border-slate-200 text-xs transition-colors">
+                    🔄 Sincronizar
+                </button>
+            </div>
+            <div id="records-list-container" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-gray-200 py-6 text-center text-xs text-gray-400 w-full">
+        Panel de Administración Privado - Storage Integrado.
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT DEL ADMINISTRADOR -->
+    <script>
+        const SUPABASE_URL = 'https://lbhcqbepondrkwxickuh.supabase.co'; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiaGNxYmVwb25kcmt3eGlja3VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNTI1NTYsImV4cCI6MjA5NzYyODU1Nn0.-3rd9wyCeQl6zIozdopJyHnQY-mmm2fxKblhWFLIQHs";
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false }
+        });
+
+        let activeFormType = 'Propiedades';
+        let itemsCache = [];
+        let editingOriginalTitle = null; 
+        let editingItemMultimedia = { imagenes: [], video_url: null };
+        let confirmActionFn = null;
+
+        const loginSection = document.getElementById('loginSection');
+        const adminPanel = document.getElementById('adminPanel');
+        const fotosInput = document.getElementById('form-fotos-input');
+        const videoInput = document.getElementById('form-video-input');
+        const statusBox = document.getElementById('multimedia-status-box');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const btnText = document.getElementById('btnText');
+        const confirmModal = document.getElementById('confirmModal');
+
+        function togglePropiedadSubcampos() {
+            const tipo = document.getElementById('prop-tipo').value;
+            const boxHab = document.getElementById('box-prop-hab');
+            const boxBanos = document.getElementById('box-prop-banos');
+            const boxArea = document.getElementById('box-prop-area');
+            const boxTerreno = document.getElementById('box-terreno-amenities');
+            const boxCasa = document.getElementById('box-casa-amenities');
+
+            if (tipo === 'Terreno') {
+                boxHab.classList.add('hidden');
+                boxBanos.classList.add('hidden');
+                boxArea.className = "col-span-1 md:col-span-3";
+                boxTerreno.classList.remove('hidden');
+                boxCasa.classList.add('hidden');
+            } else {
+                boxHab.classList.remove('hidden');
+                boxBanos.classList.remove('hidden');
+                boxArea.className = "col-span-1 md:col-span-1";
+                boxTerreno.classList.add('hidden');
+                boxCasa.classList.remove('hidden');
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-2xl shadow-xl border text-xs font-bold transition-all transform translate-y-2 opacity-0 flex items-center gap-2 max-w-sm pointer-events-auto bg-white ${
+                type === 'success' ? 'border-emerald-100 text-emerald-800' : 'border-rose-100 text-rose-800'
+            }`;
+            toast.innerHTML = `<span>${type === 'success' ? '🟢' : '🔴'}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function showConfirmModal(title, message, onConfirm) {
+            document.getElementById('confirmModalTitle').innerText = title;
+            document.getElementById('confirmModalMessage').innerText = message;
+            confirmActionFn = onConfirm;
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
+            confirmActionFn = null;
+        }
+
+        document.getElementById('confirmModalBtn').addEventListener('click', () => {
+            if (confirmActionFn) confirmActionFn();
+            closeConfirmModal();
+        });
+
+        const updateStatusBox = () => {
+            const fotosCount = fotosInput.files ? fotosInput.files.length : 0;
+            const tieneVideo = videoInput.files && videoInput.files.length > 0;
+            if (fotosCount > 0 || tieneVideo) {
+                statusBox.innerText = `Archivos listos para procesar: ${fotosCount} foto(s) ${tieneVideo ? 'y 1 video' : ''}.`;
+                statusBox.classList.remove('hidden');
+            } else { statusBox.classList.add('hidden'); }
+        };
+
+        if (fotosInput) fotosInput.addEventListener('change', updateStatusBox);
+        if (videoInput) videoInput.addEventListener('change', updateStatusBox);
+
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+
+                try {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) { showNotification(`Error de acceso: ${error.message}`, 'error'); return; }
+                    loginSection.classList.add('hidden');
+                    adminPanel.classList.remove('hidden');
+                    showNotification('Autenticado de forma correcta', 'success');
+                    fetchItemsList();
+                } catch (err) { showNotification(`Error en autenticación: ${err.message}`, 'error'); }
+            });
+        }
+
+        function toggleFormType(type) {
+            activeFormType = type;
+            cancelEditing();
+            document.getElementById('form-tab-propiedades').className = type === 'Propiedades' ? "py-3 px-4 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm" : "py-3 px-4 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-900";
+            document.getElementById('form-tab-vehiculos').className = type === 'Vehiculos' ? "py-3 px-4 text-xs font-bold rounded-xl transition-all bg-white text-indigo-600 shadow-sm" : "py-3 px-4 text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-900";
+            document.getElementById('fields-propiedades').className = type === 'Propiedades' ? "block border-t border-slate-100 pt-6 space-y-4" : "hidden";
+            document.getElementById('fields-vehiculos').className = type === 'Vehiculos' ? "block border-t border-slate-100 pt-6 space-y-4" : "hidden";
+            fetchItemsList();
+        }
+
+        async function fetchItemsList() {
+            const listContainer = document.getElementById('records-list-container');
+            document.getElementById('list-subtitle').innerText = `Consultando tabla ${activeFormType}...`;
+            listContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs animate-pulse">Sincronizando listado...</div>`;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from(activeFormType)
+                    .select('*')
+                    .order('titulo', { ascending: true });
+
+                if (error) throw error;
+                itemsCache = data;
+
+                listContainer.innerHTML = '';
+                document.getElementById('list-subtitle').innerText = `${data.length} publicaciones encontradas en la tabla ${activeFormType}`;
+
+                if (data.length === 0) {
+                    listContainer.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs border border-dashed border-slate-200 rounded-2xl">No hay publicaciones registradas aún en esta categoría.</div>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    const uniqueId = item.titulo;
+                    let listaImg = [];
+                    try { listaImg = typeof item.imagenes === 'string' ? JSON.parse(item.imagenes) : item.imagenes; } catch(e){}
+                    const miniaturaUrl = (Array.isArray(listaImg) && listaImg.length > 0) ? listaImg[0] : 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=150&q=80';
+                    const precioStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(item.precio || 0);
+                    const uniqueIdEscaped = uniqueId.replace(/'/g, "\\'");
+
+                    listContainer.innerHTML += `
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4 hover:shadow-sm transition-all">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <img src="${miniaturaUrl}" alt="${uniqueIdEscaped}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0">
+                                <div class="min-w-0">
+                                    <h4 class="font-bold text-slate-900 text-sm truncate">${item.titulo}</h4>
+                                    <p class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5">${item.detalles}</p>
+                                    <p class="text-slate-400 text-[10px] truncate mt-0.5">${precioStr} · ${item.tag}</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 flex-shrink-0">
+                                <button onclick="startEditing('${uniqueIdEscaped}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-3 rounded-xl text-xs transition-colors">Editar</button>
+                                <button onclick="triggerDelete('${uniqueIdEscaped}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2 px-3 rounded-xl text-xs transition-colors">Borrar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                listContainer.innerHTML = `<div class="text-center py-6 text-rose-500 text-xs">Error al listar los datos: ${err.message}</div>`;
+            }
+        }
+
+        function startEditing(id) {
+            const item = itemsCache.find(i => i.titulo === id);
+            if (!item) return;
+
+            editingOriginalTitle = id;
+            editingItemMultimedia.imagenes = item.imagenes;
+            editingItemMultimedia.video_url = item.video_url;
+
+            document.getElementById('edit-banner').classList.remove('hidden');
+            document.getElementById('form-title-label').innerText = "Modificar Registro Seleccionado";
+            document.getElementById('submitBtn').className = "flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2";
+            document.getElementById('btnText').innerText = "Actualizar Registro Modificado";
+            document.getElementById('multimedia-edit-hint').classList.remove('hidden');
+            document.getElementById('form-fotos-input').removeAttribute('required');
+
+            document.getElementById('form-titulo').value = item.titulo;
+            document.getElementById('form-precio').value = item.precio;
+            document.getElementById('form-tag').value = item.tag;
+            document.getElementById('form-mapa-url').value = item.mapa_url || '';
+            document.getElementById('form-descripcion').value = item.descripcion || '';
+
+            // Limpiar todos los checkboxes antes de cargar
+            document.querySelectorAll('.terreno-check, .casa-check').forEach(cb => cb.checked = false);
+
+            if (activeFormType === 'Propiedades') {
+                const esCasa = item.detalles && item.detalles.includes('Hab');
+                if (esCasa) {
+                    document.getElementById('prop-tipo').value = 'Construcción';
+                    togglePropiedadSubcampos();
+                    const partes = item.detalles.split(' · ');
+                    document.getElementById('prop-hab').value = partes[0] ? parseInt(partes[0]) : '';
+                    document.getElementById('prop-banos').value = partes[1] ? parseInt(partes[1]) : '';
+                    document.getElementById('prop-area').value = partes[2] ? partes[2] : '';
+
+                    // Restaurar checkboxes de amenidades de casa
+                    document.querySelectorAll('.casa-check').forEach(cb => {
+                        if (item.detalles.includes(cb.value)) cb.checked = true;
+                    });
+                } else {
+                    document.getElementById('prop-tipo').value = 'Terreno';
+                    togglePropiedadSubcampos();
+                    document.getElementById('prop-hab').value = '';
+                    document.getElementById('prop-banos').value = '';
+                    
+                    const partes = (item.detalles || '').split(' · ');
+                    document.getElementById('prop-area').value = partes[0] ? partes[0].replace('Área: ', '') : '';
+
+                    // Restaurar checkboxes de amenidades de terreno
+                    document.querySelectorAll('.terreno-check').forEach(cb => {
+                        if (item.detalles.includes(cb.value)) cb.checked = true;
+                    });
+                }
+            } else {
+                document.getElementById('veh-marca').value = item.marca || '';
+                document.getElementById('veh-modelo').value = item.modelo || '';
+                const partes = (item.detalles || '').split(' · ');
+                document.getElementById('veh-ano').value = partes[0] ? parseInt(partes[0].replace('Año ', '')) : '';
+                document.getElementById('veh-combustible').value = partes[1] ? partes[1] : '';
+                document.getElementById('veh-transmision').value = partes[2] ? partes[2] : '';
+            }
+
+            document.getElementById('cms-upload-form').scrollIntoView({ behavior: 'smooth' });
+            showNotification(`Datos de "${item.titulo}" cargados para editar`, 'success');
+        }
+
+        function cancelEditing() {
+            editingOriginalTitle = null;
+            editingItemMultimedia = { imagenes: [], video_url: null };
+            document.getElementById('edit-banner').classList.add('hidden');
+            document.getElementById('form-title-label').innerText = "Publicar Nuevo Registro";
+            document.getElementById('submitBtn').className = "flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2";
+            document.getElementById('btnText').innerText = "Procesar Multimedia y Guardar Registro";
+            document.getElementById('multimedia-edit-hint').classList.add('hidden');
+            document.getElementById('form-fotos-input').setAttribute('required', 'required');
+            document.getElementById('cms-upload-form').reset();
+            document.querySelectorAll('.terreno-check, .casa-check').forEach(cb => cb.checked = false);
+            document.getElementById('prop-tipo').value = 'Construcción';
+            togglePropiedadSubcampos();
+            statusBox.classList.add('hidden');
+        }
+
+        function triggerDelete(id) {
+            showConfirmModal(
+                '¿Eliminar publicación?',
+                `¿Estás seguro de que deseas eliminar permanentemente la publicación "${id}"? Esta acción no se puede deshacer.`,
+                async () => {
+                    try {
+                        const { data, error } = await supabaseClient
+                            .from(activeFormType)
+                            .delete()
+                            .eq('titulo', id)
+                            .select();
+
+                        if (error) throw error;
+                        if (!data || data.length === 0) {
+                            showNotification("⚠️ Bloqueado por RLS: Activa la política de DELETE en Supabase.", "error");
+                            return;
+                        }
+
+                        showNotification(`Publicación "${id}" borrada con éxito`, 'success');
+                        fetchItemsList();
+                    } catch (err) {
+                        showNotification(`Error al borrar: ${err.message}`, 'error');
+                    }
+                }
+            );
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            submitBtn.disabled = true;
+            btnSpinner.classList.remove('hidden');
+            btnText.innerText = editingOriginalTitle ? "Actualizando base de datos..." : "Subiendo archivos al Storage...";
+
+            try {
+                let urlsImagenes = [];
+                const fotos = fotosInput.files;
+
+                if (fotos && fotos.length > 0) {
+                    for (let i = 0; i < fotos.length; i++) {
+                        const archivo = fotos[i];
+                        const nombreArchivo = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${archivo.name}`;
+                        
+                        const { data, error } = await supabaseClient.storage
+                            .from('Multimedia')
+                            .upload(`fotos/${nombreArchivo}`, archivo);
+                            
+                        if (error) throw new Error(`Fallo al subir foto [${archivo.name}]: ${error.message}`);
+                        
+                        const { data: publicUrlData } = supabaseClient.storage.from('Multimedia').getPublicUrl(`fotos/${nombreArchivo}`);
+                        urlsImagenes.push(publicUrlData.publicUrl);
+                    }
+                } else if (editingOriginalTitle) {
+                    urlsImagenes = editingItemMultimedia.imagenes;
+                }
+
+                let urlVideo = editingOriginalTitle ? editingItemMultimedia.video_url : null;
+                if (videoInput.files && videoInput.files.length > 0) {
+                    const archivoVideo = videoInput.files[0];
+                    const nombreVideo = `${Date.now()}_${archivoVideo.name}`;
+                    
+                    const { data, error } = await supabaseClient.storage
+                        .from('Multimedia')
+                        .upload(`videos/${nombreVideo}`, archivoVideo);
+                        
+                    if (error) throw new Error(`Fallo al subir el video: ${error.message}`);
+                    
+                    const { data: publicUrlData } = supabaseClient.storage.from('Multimedia').getPublicUrl(`videos/${nombreVideo}`);
+                    urlVideo = publicUrlData.publicUrl;
+                }
+
+                const titulo = document.getElementById('form-titulo').value;
+                const precio = Number(document.getElementById('form-precio').value);
+                const tag = document.getElementById('form-tag').value;
+                const mapaUrl = document.getElementById('form-mapa-url').value;
+                const descripcion = document.getElementById('form-descripcion').value;
+
+                let payload = {
+                    titulo: titulo,
+                    precio: precio,
+                    tag: tag,
+                    descripcion: descripcion,
+                    imagenes: urlsImagenes, 
+                    video_url: urlVideo,
+                    mapa_url: mapaUrl || null
+                };
+
+                if (activeFormType === 'Propiedades') {
+                    const tipoInmueble = document.getElementById('prop-tipo').value;
+                    const areaInput = document.getElementById('prop-area').value.trim();
+                    const area = areaInput ? areaInput : "Consultar área";
+
+                    if (tipoInmueble === 'Terreno') {
+                        const checkedAmenidades = Array.from(document.querySelectorAll('.terreno-check:checked')).map(cb => cb.value);
+                        if (checkedAmenidades.length > 0) {
+                            payload.detalles = `Área: ${area} · ${checkedAmenidades.join(' · ')}`;
+                        } else {
+                            payload.detalles = `Área: ${area}`;
+                        }
+                    } else {
+                        const hab = document.getElementById('prop-hab').value || "0";
+                        const banos = document.getElementById('prop-banos').value || "0";
+                        const checkedCasa = Array.from(document.querySelectorAll('.casa-check:checked')).map(cb => cb.value);
+                        
+                        let detalleBase = `${hab} Hab · ${banos} Baños · ${area}`;
+                        if (checkedCasa.length > 0) {
+                            payload.detalles = `${detalleBase} · ${checkedCasa.join(' · ')}`;
+                        } else {
+                            payload.detalles = detalleBase;
+                        }
+                    }
+                } else {
+                    const marca = document.getElementById('veh-marca').value || "";
+                    const modelo = document.getElementById('veh-modelo').value || "";
+                    const ano = document.getElementById('veh-ano').value || "2024";
+                    const comb = document.getElementById('veh-combustible').value || "Gasolina";
+                    const trans = document.getElementById('veh-transmision').value || "Automático";
+                    
+                    payload.detalles = `Año ${ano} · ${comb} · ${trans}`;
+                    payload.marca = marca;
+                    payload.modelo = modelo;
+                }
+
+                if (editingOriginalTitle) {
+                    const { data, error: updateError } = await supabaseClient
+                        .from(activeFormType)
+                        .update(payload)
+                        .eq('titulo', editingOriginalTitle)
+                        .select();
+
+                    if (updateError) throw updateError;
+
+                    if (!data || data.length === 0) {
+                        showNotification("⚠️ Bloqueado por RLS: Activa la política UPDATE en Supabase.", "error");
+                        return;
+                    }
+
+                    showNotification(`Publicación "${titulo}" actualizada correctamente`, 'success');
+                } else {
+                    const { error: insertError } = await supabaseClient
+                        .from(activeFormType)
+                        .insert([payload]);
+
+                    if (insertError) throw insertError;
+                    showNotification(`¡Publicado con éxito en ${activeFormType}!`, 'success');
+                }
+
+                cancelEditing();
+                fetchItemsList();
+
+            } catch (error) {
+                showNotification(`Error en el proceso: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                btnSpinner.classList.add('hidden');
+                btnText.innerText = editingOriginalTitle ? "Actualizar Registro Modificado" : "Procesar Multimedia y Guardar Registro";
+            }
+        }
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await supabaseClient.auth.signOut();
+                loginSection.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+                cancelEditing();
+                document.getElementById('loginForm').reset();
+                showNotification('Sesión cerrada con éxito', 'success');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+"version": 2,
+"cleanUrls": true,
+"builds": [
+{ "src": "*.html", "use": "@vercel/static" }
+],
+"routes": [
+{ "src": "/admin", "dest": "/admin.html" },
+{ "src": "/detalle", "dest": "/detalle.html" },
+{ "src": "/", "dest": "/index.html" }
+]
+}
